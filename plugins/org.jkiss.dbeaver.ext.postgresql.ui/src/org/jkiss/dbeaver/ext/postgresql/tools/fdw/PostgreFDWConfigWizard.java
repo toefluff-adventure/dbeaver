@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Copyright (C) 2010-2026 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import org.jkiss.dbeaver.model.impl.sql.edit.SQLObjectEditor;
 import org.jkiss.dbeaver.model.navigator.DBNDataSource;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
 import org.jkiss.dbeaver.model.navigator.DBNModel;
+import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLUtils;
 import org.jkiss.dbeaver.model.struct.DBSEntity;
@@ -275,32 +276,44 @@ class PostgreFDWConfigWizard extends BaseWizard implements DBPContextProvider {
         PostgreFDWConfigWizard.FDWInfo selectedFDW = getSelectedFDW();
         PropertySourceCustom propertySource = getFdwPropertySource();
         Map<String, Object> propValues = propertySource.getPropertiesWithDefaults();
+        Set<String> userMappingPropertyNames = new HashSet<>();
+        if (selectedFDW.fdwDescriptor != null) {
+            for (DBPPropertyDescriptor property : selectedFDW.fdwDescriptor.getUserMappingProperties()) {
+                userMappingPropertyNames.add(property.getId());
+            }
+        }
 
         String serverId = getFdwServerId();
 
         actions.add(new SQLDatabasePersistActionComment(curDataSource, "CREATE EXTENSION " + selectedFDW.getId()));
-        {
-            StringBuilder script = new StringBuilder();
-            script.append("CREATE SERVER ").append(serverId)
-                .append("\n\tFOREIGN DATA WRAPPER ").append(selectedFDW.getId())
-                .append("\n\tOPTIONS(");
-            boolean firstProp = true;
-            for (Map.Entry<String, Object> pe : propValues.entrySet()) {
-                String propName = CommonUtils.toString(pe.getKey());
-                String propValue = CommonUtils.toString(pe.getValue());
-                if (CommonUtils.isEmpty(propName) || CommonUtils.isEmpty(propValue)) {
-                    continue;
-                }
-                if (!firstProp) script.append(", ");
-                script.append(propName).append(" '").append(propValue).append("'");
-                firstProp = false;
+        StringBuilder script = new StringBuilder();
+        List<String> serverOptions = new ArrayList<>();
+        List<String> userMappingOptions = new ArrayList<>();
+        for (Map.Entry<String, Object> property : propValues.entrySet()) {
+            String propertyName = CommonUtils.toString(property.getKey());
+            String propertyValue = CommonUtils.toString(property.getValue());
+            if (CommonUtils.isEmpty(propertyName) || CommonUtils.isEmpty(propertyValue)) {
+                continue;
             }
-            script
-                .append(")");
-            actions.add(new SQLDatabasePersistAction("Create extension", script.toString()));
+            String option = propertyName + " '" + propertyValue.replace("'", "''") + "'";
+            if (userMappingPropertyNames.contains(propertyName)) {
+                userMappingOptions.add(option);
+            } else {
+                serverOptions.add(option);
+            }
         }
+        script.append("CREATE SERVER ").append(serverId)
+            .append("\n\tFOREIGN DATA WRAPPER ").append(selectedFDW.getId())
+            .append("\n\tOPTIONS(")
+            .append(String.join(", ", serverOptions))
+            .append(")");
+        actions.add(new SQLDatabasePersistAction("Create foreign server", script.toString()));
 
-        actions.add(new SQLDatabasePersistAction("CREATE USER MAPPING FOR CURRENT_USER SERVER " + serverId));
+        StringBuilder userMappingScript = new StringBuilder("CREATE USER MAPPING FOR CURRENT_USER SERVER ").append(serverId);
+        if (!userMappingOptions.isEmpty()) {
+            userMappingScript.append("\n\tOPTIONS(").append(String.join(", ", userMappingOptions)).append(")");
+        }
+        actions.add(new SQLDatabasePersistAction(userMappingScript.toString()));
 
         // Now tables
         DBECommandContext commandContext = new SimpleCommandContext(getExecutionContext(), false);

@@ -47,6 +47,8 @@
         <fdw id="oracle" fdwId="oracle_fdw" databases="oracle" name="Oracle" description="Oracle FDW" docURL="https://github.com/laurenz/oracle_fdw">
             <propertyGroup label="Options">
                 <property id="dbserver" description="Database connection string" defaultValue="//${host}:${port}/${database}"/>
+            </propertyGroup>
+            <propertyGroup label="User mapping" target="userMapping">
                 <property id="user" description="User name" defaultValue="${user}"/>
                 <property id="password" description="User password" defaultValue="${password}"/>
             </propertyGroup>

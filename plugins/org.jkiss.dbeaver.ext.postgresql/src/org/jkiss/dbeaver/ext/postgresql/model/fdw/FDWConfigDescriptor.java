@@ -1,6 +1,6 @@
 /*
  * DBeaver - Universal Database Manager
- * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Copyright (C) 2010-2026 DBeaver Corp and others
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,9 @@ import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
 import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
 import org.jkiss.utils.CommonUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * FDWConfigDescriptor
  */
@@ -41,6 +44,7 @@ public class FDWConfigDescriptor extends AbstractDescriptor
     private final String name;
     private final String description;
     private final DBPPropertyDescriptor[] properties;
+    private final DBPPropertyDescriptor[] userMappingProperties;
     private final String[] foreignDatabases;
 
     public FDWConfigDescriptor(IConfigurationElement config)
@@ -54,6 +58,13 @@ public class FDWConfigDescriptor extends AbstractDescriptor
         this.foreignDatabases = CommonUtils.notEmpty(config.getAttribute("databases")).split(",");
 
         this.properties = PropertyDescriptor.extractPropertyGroups(config);
+        List<DBPPropertyDescriptor> userMappingProperties = new ArrayList<>();
+        for (IConfigurationElement propertyGroup : config.getChildren("propertyGroup")) {
+            if ("userMapping".equals(propertyGroup.getAttribute("target"))) {
+                userMappingProperties.addAll(PropertyDescriptor.extractProperties(propertyGroup));
+            }
+        }
+        this.userMappingProperties = userMappingProperties.toArray(new DBPPropertyDescriptor[0]);
     }
 
     @NotNull
@@ -81,6 +92,10 @@ public class FDWConfigDescriptor extends AbstractDescriptor
 
     public DBPPropertyDescriptor[] getProperties() {
         return properties;
+    }
+
+    public DBPPropertyDescriptor[] getUserMappingProperties() {
+        return userMappingProperties;
     }
 
     public boolean matches(DBPDataSourceContainer dataSource) {
