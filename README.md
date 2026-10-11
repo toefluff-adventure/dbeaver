@@ -30,6 +30,10 @@ Just run an installer and then click on app icon. Or unzip an archive and run `d
 Note: DBeaver needs Java to run. <a href="https://adoptium.net/temurin/releases/?package=jre" target="_blank">OpenJDK 25</a> is included in all DBeaver distributions.
 You can change default JDK version by replacing directory `jre` in dbeaver installation folder.
 
+### Build and install from source on Linux
+
+Run `./tools/install.sh` from a checkout to build DBeaver Community Edition and install it for the current user under `~/.local/opt/dbeaver-ce`, with a terminal launcher at `~/.local/bin/dbeaver` and a desktop-menu entry. To install an existing build without rebuilding, use `./tools/install.sh --skip-build`.
+
 ## Documentation
 
 * [Full product documentation](https://dbeaver.com/docs/dbeaver/)
