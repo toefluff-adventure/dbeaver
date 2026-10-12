@@ -96,13 +96,26 @@ if [ ! -d "$PRODUCT_TARGET_DIR" ]; then
     exit 1
 fi
 
+case "$(uname -m)" in
+    x86_64|amd64)
+        PRODUCT_ARCH=x86_64
+        ;;
+    aarch64|arm64)
+        PRODUCT_ARCH=aarch64
+        ;;
+    *)
+        echo "Error: unsupported Linux architecture: $(uname -m)" >&2
+        exit 1
+        ;;
+esac
+
 PRODUCT_ARCHIVE=$(
-    find "$PRODUCT_TARGET_DIR" -type f -name 'dbeaver-ce-*-linux*.tar.gz' -printf '%T@ %p\n' |
+    find "$PRODUCT_TARGET_DIR" -type f -name "dbeaver-ce-*-linux*.$PRODUCT_ARCH.tar.gz" -printf '%T@ %p\n' |
         sort -nr |
         sed -n '1s/^[^ ]* //p'
 )
 if [ -z "$PRODUCT_ARCHIVE" ]; then
-    echo "Error: no Linux DBeaver CE archive found under $PRODUCT_TARGET_DIR" >&2
+    echo "Error: no Linux DBeaver CE archive for $PRODUCT_ARCH found under $PRODUCT_TARGET_DIR" >&2
     exit 1
 fi
 
